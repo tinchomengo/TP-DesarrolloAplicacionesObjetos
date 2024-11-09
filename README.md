@@ -2,6 +2,13 @@
 
 **Trabajo Práctico Integrador**
 
+\*\*Integrantes:
+
+- Imoberdorf, Martín
+- Mengo, Martín
+- Pontelli, Matteo
+- Rodriguez, Isauro Manuel
+
 ## Ejercicio 1: Sistema de Gestión de Biblioteca
 
 ### Objetivo
