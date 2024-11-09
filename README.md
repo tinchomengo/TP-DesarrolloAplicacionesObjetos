@@ -2,7 +2,7 @@
 
 **Trabajo Práctico Integrador**
 
-\*\*Integrantes:
+**Integrantes:**
 
 - Imoberdorf, Martín
 - Mengo, Martín
