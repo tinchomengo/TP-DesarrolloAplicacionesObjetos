@@ -1,5 +1,6 @@
 from database.conexionBDA import DbSingleton
 from datetime import datetime, timedelta
+from datetime import datetime
 
 class PrestamoController:
     def __init__(self):
@@ -50,6 +51,15 @@ class PrestamoController:
         return resultado
 
     def registrar_prestamo(self, usuario_id, libro_isbn, fecha_prestamo, fecha_devolucion):
+        # Convert dates to datetime objects for comparison
+        fecha_prestamo_dt = datetime.strptime(fecha_prestamo, "%Y-%m-%d")
+        fecha_devolucion_dt = datetime.strptime(fecha_devolucion, "%Y-%m-%d")
+
+        # Validate that the return date is after the loan date
+        if fecha_devolucion_dt <= fecha_prestamo_dt:
+            print("La fecha de devolución debe ser posterior a la fecha de préstamo.")
+            return "La fecha de devolución debe ser posterior a la fecha de préstamo."
+        
         # Obtener el tipo de usuario (estudiante o profesor)
         tipo_usuario_query = "SELECT tipo_usuario FROM usuarios WHERE id = ?"
         resultado_usuario = self.db.fetch_query(tipo_usuario_query, (usuario_id,))

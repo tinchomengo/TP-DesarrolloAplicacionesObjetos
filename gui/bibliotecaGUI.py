@@ -29,14 +29,21 @@ class BibliotecaApp:
         self.root = root
         self.root.title("Sistema de Gestión de Biblioteca")
         self.root.geometry("800x600")
-        
+        title_label = tk.Label(
+            self.root,
+            text="Menú de Opciones",
+            font=("Helvetica", 16, "bold")
+        )
+        title_label.pack(side=tk.TOP, pady=(20, 10))  # Ajusta el padding para dar espacio
+
         # Crear botones en columna
         self.create_buttons()
     
     def create_buttons(self):
         # Crear un marco lateral para los botones
         button_frame = tk.Frame(self.root)
-        button_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
+
+        button_frame.pack(side=tk.TOP, fill=tk.Y, padx=10, pady=10)
 
         # Configuración de los botones
         buttons = [
@@ -266,18 +273,10 @@ class BibliotecaApp:
                     libro_isbn_entry.delete(0, tk.END)
                     fecha_prestamo_entry.delete(0, tk.END)
                     fecha_devolucion_entry.delete(0, tk.END)
-                elif resultado == "Libro no disponible":
-                    messagebox.showwarning("Advertencia", "El libro no está disponible para préstamo", parent=prestamo_window)
-                elif resultado == "Usuario no encontrado":
-                    messagebox.showwarning("Advertencia", "El ID del usuario no existe en la base de datos", parent=prestamo_window)
-                elif resultado == "Libro no encontrado":
-                    messagebox.showwarning("Advertencia", "El ISBN del libro no existe en la base de datos", parent=prestamo_window)
-                elif resultado == "Límite de préstamos alcanzado":
-                    messagebox.showwarning("Advertencia", f"El usuario ha alcanzado el límite de préstamos permitidos", parent=prestamo_window)
+                else:
+                    messagebox.showwarning("Advertencia", resultado, parent=prestamo_window)  # Show the error message
             else:
                 messagebox.showwarning("Advertencia", "Todos los campos son obligatorios y deben tener el formato correcto", parent=prestamo_window)
-
-
 
         tk.Button(prestamo_window, text="Registrar Préstamo", command=registrar_prestamo).grid(row=4, columnspan=2, pady=10)
 
@@ -386,11 +385,6 @@ class BibliotecaApp:
         messagebox.showinfo("Préstamos Vencidos", reporte)
         self.generar_pdf("Préstamos Vencidos", encabezados, filas, "prestamos_vencidos.pdf")
         resultado = prestamo_controller.listar_prestamos_vencidos()
-        if resultado:
-            reporte = "\n".join([f"ID: {row[0]}, Usuario: {row[1]}, Libro: {row[2]}, Fecha Préstamo: {row[3]}" for row in resultado])
-        else:
-            reporte = "No hay préstamos vencidos."
-        messagebox.showinfo("Préstamos Vencidos", reporte)
         self.generar_pdf("Préstamos Vencidos", reporte, "prestamos_vencidos.pdf")
 
     def mostrar_libros_mas_prestados(self):
