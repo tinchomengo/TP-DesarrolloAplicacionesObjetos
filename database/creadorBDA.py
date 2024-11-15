@@ -65,6 +65,21 @@ def crear_tablas():
 
     db.commit()
     print("Tablas Creadas")
+def crear_tabla_individual():
+    db = DbSingleton()
+
+    db.execute_query("""
+            CREATE TABLE historicoLibros (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            isbn TEXT NOT NULL,
+            titulo TEXT NOT NULL,
+            genero TEXT NOT NULL,
+            anio_publicacion INTEGER NOT NULL,
+            autor_id INTEGER NOT NULL,
+            fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
 
 if __name__ == "__main__":
     crear_tablas()

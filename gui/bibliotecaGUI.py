@@ -72,10 +72,10 @@ class BibliotecaApp:
         # Title label at the top
         title_label = tk.Label(
             self.root,
-            text="Menú de Opciones",
-            font=("Helvetica", 20, "bold"),  # Increased font size
-            bg="#FFFFFF",
-            fg="#000000"
+            text="Gestor de Biblioteca",
+            font=("Helvetica", 30, "bold"),  # Increased font size
+            bg="#000000",
+            fg="#FFFFFF"
         )
         title_label.pack(side=tk.TOP, pady=(200, 10))
 
@@ -85,6 +85,26 @@ class BibliotecaApp:
 
         # Create buttons in three columns
         self.create_buttons()
+
+                # Button to close the application
+        close_button = tk.Button(
+            self.root,
+            text="Cerrar aplicación",
+            command=self.cerrar_aplicacion,
+            width=20,
+            height=2,
+            font=("Helvetica", 14),
+            bg="#FF4C4C",  # Red background for emphasis
+            fg="black"
+        )
+        close_button.place(relx=0.5, rely=0.9, anchor="center")  # Position the button at the bottom
+
+    
+    def cerrar_aplicacion(self):
+        """Cierra todas las ventanas y termina el programa."""
+        if messagebox.askyesno("Confirm", "Are you sure you want to close the app?"):
+            self.root.destroy()
+            sys.exit()
 
     def create_buttons(self):
         # Three lists of buttons for three columns
@@ -165,12 +185,11 @@ class BibliotecaApp:
                 messagebox.showwarning("Advertencia", "Todos los campos son obligatorios", parent=autores_window)
         
         tk.Button(frame, text="Registrar Autor", command=registrar_autor).grid(row=3, columnspan=2, pady=10)
-
     def open_libros_window(self):
         # Ventana para registrar libros
         libros_window = tk.Toplevel(self.root)
         libros_window.title("Registro de Libros")
-        libros_window.geometry("400x400")
+        libros_window.geometry("500x500")
 
         self.set_window_background(libros_window)
 
@@ -178,6 +197,12 @@ class BibliotecaApp:
         frame = tk.Frame(libros_window)
         frame.place(relx=0.5, rely=0.5, anchor="center")
 
+        # Obtener autores de la base de datos
+        autores = autor_controller.buscar_autores_por_nombre("")  # Buscar todos los autores
+        autores_opciones = [f"{autor[1]} {autor[2]}" for autor in autores]  # Nombre + Apellido
+        autores_dict = {f"{autor[1]} {autor[2]}": autor[0] for autor in autores}  # {Nombre: ID}
+
+        # Campos para ingresar los datos del libro
         tk.Label(frame, text="ISBN:").grid(row=0, column=0, padx=5, pady=5)
         isbn_libro = tk.Entry(frame)
         isbn_libro.grid(row=0, column=1, padx=5, pady=5)
@@ -198,19 +223,29 @@ class BibliotecaApp:
         cantidad_libro = tk.Entry(frame)
         cantidad_libro.grid(row=4, column=1, padx=5, pady=5)
 
-        tk.Label(frame, text="ID del Autor:").grid(row=5, column=0, padx=5, pady=5)
-        autor_id_libro = tk.Entry(frame)
-        autor_id_libro.grid(row=5, column=1, padx=5, pady=5)
-        
+        # Dropdown para seleccionar autor
+        tk.Label(frame, text="Seleccionar Autor:").grid(row=5, column=0, padx=5, pady=5)
+        autor_dropdown = ttk.Combobox(frame, values=autores_opciones, state="readonly", width=18)
+        autor_dropdown.grid(row=5, column=1, padx=5, pady=5, sticky="w")
+
+        # Label y botón en la misma fila que el dropdown
+        tk.Label(frame, text="Autor no listado?").grid(row=5, column=2, padx=5, pady=5, sticky="e")
+        tk.Button(frame, text="Registrar", command=self.open_autores_window, width=10, height=1).grid(row=5, column=3, padx=5, pady=5)
+
         def registrar_libro():
             isbn = isbn_libro.get()
             titulo = titulo_libro.get()
             genero = genero_libro.get()
             anio = anio_libro.get()
             cantidad = cantidad_libro.get()
-            autor_id = autor_id_libro.get()
-            
-            if isbn and titulo and genero and anio.isdigit() and cantidad.isdigit() and autor_id.isdigit():
+            autor_seleccionado = autor_dropdown.get()
+
+            if autor_seleccionado and autor_seleccionado in autores_dict:
+                autor_id = autores_dict[autor_seleccionado]  # Obtener el ID del autor seleccionado
+            else:
+                autor_id = None  # Si no hay autor seleccionado, marcar como None
+
+            if isbn and titulo and genero and anio.isdigit() and cantidad.isdigit() and autor_id:
                 resultado = libro_controller.registrar_libro(
                     isbn=isbn,
                     titulo=titulo,
@@ -227,41 +262,45 @@ class BibliotecaApp:
                     genero_libro.delete(0, tk.END)
                     anio_libro.delete(0, tk.END)
                     cantidad_libro.delete(0, tk.END)
-                    autor_id_libro.delete(0, tk.END)
+                    autor_dropdown.set("")
+                elif resultado == "Año inválido":
+                    messagebox.showwarning("Advertencia", "El año de publicación no puede ser mayor al año actual.", parent=libros_window)
+                elif resultado == "Cantidad inválida":
+                    messagebox.showwarning("Advertencia", "La cantidad disponible debe ser mayor a 0.", parent=libros_window)
                 elif resultado == "ISBN duplicado":
                     messagebox.showwarning("Advertencia", "El ISBN ya existe en la base de datos.", parent=libros_window)
             else:
-                messagebox.showwarning("Advertencia", "Todos los campos son obligatorios y deben ser numéricos donde corresponda", parent=libros_window)
+                messagebox.showwarning("Advertencia", "Todos los campos son obligatorios y deben tener el formato correcto.", parent=libros_window)
 
-        tk.Button(frame, text="Registrar Libro", command=registrar_libro).grid(row=6, columnspan=2, pady=10)
+        tk.Button(frame, text="Registrar Libro", command=registrar_libro).grid(row=6, columnspan=4, pady=10)
 
     def open_consulta_usuarios_window(self):
         consulta_window = tk.Toplevel(self.root)
         consulta_window.title("Consultar Usuarios")
-        consulta_window.geometry("1000x400")
+        consulta_window.geometry("1000x500")  # Ajustar tamaño para espacio adicional
 
         self.set_window_background(consulta_window)
 
-        tk.Label(consulta_window, text="Buscar por Nombre o Apellido:").pack(pady=10)
-        criterio_entry = tk.Entry(consulta_window, width=30)
-        criterio_entry.pack(pady=5)
+        # Encabezado y entrada para búsqueda
+        frame_top = tk.Frame(consulta_window)
+        frame_top.pack(pady=10)
 
-        columns = ("ID", "Nombre", "Apellido", "Tipo de Usuario", "Dirección", "Teléfono")
+        tk.Label(frame_top, text="Buscar por Nombre o Apellido:").grid(row=0, column=0, padx=5)
+        criterio_entry = tk.Entry(frame_top, width=30)
+        criterio_entry.grid(row=0, column=1, padx=5)
+
+        tk.Button(frame_top, text="Buscar", command=lambda: buscar_usuarios()).grid(row=0, column=2, padx=5)
+
+        # Configuración de tabla
+        columns = ("ID", "Nombre", "Apellido", "Tipo de Usuario", "Dirección", "Teléfono", "Baja")
         resultado_tree = ttk.Treeview(consulta_window, columns=columns, show="headings", height=15)
-        resultado_tree.heading("ID", text="ID")
-        resultado_tree.heading("Nombre", text="Nombre")
-        resultado_tree.heading("Apellido", text="Apellido")
-        resultado_tree.heading("Tipo de Usuario", text="Tipo de Usuario")
-        resultado_tree.heading("Dirección", text="Dirección")
-        resultado_tree.heading("Teléfono", text="Teléfono")
+        for col in columns:
+            resultado_tree.heading(col, text=col)
+            resultado_tree.column(col, width=150, anchor="center")
+        resultado_tree.pack(pady=10)
 
         resultado_tree.column("ID", width=50, anchor="center")
-        resultado_tree.column("Nombre", width=150, anchor="center")
-        resultado_tree.column("Apellido", width=150, anchor="center")
-        resultado_tree.column("Tipo de Usuario", width=150, anchor="center")
-        resultado_tree.column("Dirección", width=200, anchor="center")
-        resultado_tree.column("Teléfono", width=150, anchor="center")
-        resultado_tree.pack(pady=10)
+        resultado_tree.column("Baja", width=50, anchor="center")
 
         style = ttk.Style()
         style.configure("Treeview", rowheight=32, font=("Helvetica", 15), foreground="black")
@@ -270,21 +309,65 @@ class BibliotecaApp:
         resultado_tree.tag_configure("oddrow", background="#f0f0f0")
         resultado_tree.tag_configure("evenrow", background="#ffffff")
 
+        # Función para cargar datos
+        def cargar_usuarios(usuarios):
+            for item in resultado_tree.get_children():
+                resultado_tree.delete(item)
+
+            if usuarios:
+                for index, usuario in enumerate(usuarios):
+                    tag = "oddrow" if index % 2 == 0 else "evenrow"
+                    resultado_tree.insert(
+                        "",
+                        "end",
+                        values=(usuario[0], usuario[1], usuario[2], usuario[3], usuario[4], usuario[5], "-"),
+                        tags=(tag,)
+                    )
+            else:
+                resultado_tree.insert("", "end", values=("No se encontraron usuarios", "", "", "", "", "", ""), tags=("oddrow",))
+
+        # Función para eliminar usuario
+        def eliminar_usuario(usuario_id):
+            confirm = messagebox.askyesno("Confirmar Baja", f"¿Está seguro de eliminar el usuario ID {usuario_id}?")
+            if confirm:
+                resultado = usuario_controller.eliminar_usuario(usuario_id)
+                if resultado == "Éxito":
+                    messagebox.showinfo("Éxito", f"El usuario ID {usuario_id} ha sido eliminado.")
+                    usuarios = usuario_controller.buscar_usuarios_por_nombre("")
+                    cargar_usuarios(usuarios)
+                elif resultado == "El usuario tiene préstamos activos. No se puede eliminar.":
+                    messagebox.showwarning("Advertencia", resultado)
+                else:
+                    messagebox.showerror("Error", "No se pudo eliminar el usuario.")
+
+        # Evento para clic en la columna Baja
+        def on_item_click(event):
+            item_id = resultado_tree.identify_row(event.y)
+            column = resultado_tree.identify_column(event.x)
+            if column == "#7":  # Columna "Baja"
+                usuario_id = resultado_tree.item(item_id)["values"][0]
+                if usuario_id:
+                    eliminar_usuario(usuario_id)
+
+        resultado_tree.bind("<Button-1>", on_item_click)
+
+        # Función para buscar usuarios
         def buscar_usuarios():
             criterio = criterio_entry.get()
-            if criterio:
-                resultados = usuario_controller.buscar_usuarios_por_nombre(criterio)
-                for item in resultado_tree.get_children():
-                    resultado_tree.delete(item)
+            usuarios = usuario_controller.buscar_usuarios_por_nombre(criterio)
+            cargar_usuarios(usuarios)
 
-                if resultados:
-                    for index, resultado in enumerate(resultados):
-                        tag = "oddrow" if index % 2 == 0 else "evenrow"
-                        resultado_tree.insert("", "end", values=resultado, tags=(tag,))
-                else:
-                    resultado_tree.insert("", "end", values=("No se encontraron usuarios", "", "", "", "", ""), tags=("oddrow",))
+        # Botón para registrar nuevo usuario
+        tk.Button(consulta_window, text="Registrar Nuevo Usuario", command=self.open_usuarios_window,font=("Helvetica", 14),
+            bg="#4CAF50",
+            fg="black",
+            width=25,
+            height=2
+        ).pack(pady=20, side=tk.BOTTOM)
 
-        tk.Button(consulta_window, text="Buscar", command=buscar_usuarios).pack(pady=5)
+        # Cargar todos los usuarios al abrir la ventana
+        usuarios = usuario_controller.buscar_usuarios_por_nombre("")
+        cargar_usuarios(usuarios)
 
 
     def open_usuarios_window(self):
@@ -349,56 +432,92 @@ class BibliotecaApp:
 
         self.set_window_background(consulta_window)
 
-        tk.Label(consulta_window, text="Buscar por ISBN o Título:").pack(pady=10)
-        criterio_entry = tk.Entry(consulta_window, width=30)
-        criterio_entry.pack(pady=5)
+        # Frame superior para la búsqueda
+        frame_top = tk.Frame(consulta_window)
+        frame_top.pack(pady=10)
+
+        # Campo de entrada y botón de búsqueda en la misma fila
+        tk.Label(frame_top, text="Buscar por ISBN o Título:").grid(row=0, column=0, padx=5)
+        criterio_entry = tk.Entry(frame_top, width=30)
+        criterio_entry.grid(row=0, column=1, padx=5)
+        tk.Button(frame_top, text="Buscar", command=lambda: buscar_libros()).grid(row=0, column=2, padx=5)
 
         # Crear el Treeview para mostrar los resultados en forma de tabla
-        columns = ("ISBN", "Título", "Género", "Año de Publicación", "Autor", "Cantidad Disponible")
+        columns = ("ISBN", "Título", "Género", "Año de Publicación", "Autor", "Cantidad Disponible", "Baja")
         resultado_tree = ttk.Treeview(consulta_window, columns=columns, show="headings", height=15)
-        resultado_tree.heading("ISBN", text="ISBN")
-        resultado_tree.heading("Título", text="Título")
-        resultado_tree.heading("Género", text="Género")
-        resultado_tree.heading("Año de Publicación", text="Año de Publicación")
-        resultado_tree.heading("Autor", text="Autor")  # Cambiado a Autor
-        resultado_tree.heading("Cantidad Disponible", text="Cantidad Disponible")
-
-        # Configurar el ancho de las columnas y centrado horizontal
+        for col in columns:
+            resultado_tree.heading(col, text=col)
+            resultado_tree.column(col, anchor="center")
         resultado_tree.column("ISBN", width=150, anchor="center")
         resultado_tree.column("Título", width=250, anchor="center")
         resultado_tree.column("Género", width=150, anchor="center")
         resultado_tree.column("Año de Publicación", width=150, anchor="center")
-        resultado_tree.column("Autor", width=200, anchor="center")  # Ajustar el ancho para el nombre completo
+        resultado_tree.column("Autor", width=200, anchor="center")
         resultado_tree.column("Cantidad Disponible", width=180, anchor="center")
+        resultado_tree.column("Baja", width=50, anchor="center")
         resultado_tree.pack(pady=10)
 
         # Estilos para ajustar el tamaño de fuente y centrado de filas
         style = ttk.Style()
-        style.configure("Treeview", rowheight=32, font=("Helvetica", 15), foreground="black")  # Aumenta el tamaño de la fuente
+        style.configure("Treeview", rowheight=32, font=("Helvetica", 15), foreground="black")
         style.configure("Treeview.Heading", font=("Helvetica", 13, "bold"))
 
         # Alternar colores de filas
         resultado_tree.tag_configure("oddrow", background="#f0f0f0")
         resultado_tree.tag_configure("evenrow", background="#ffffff")
 
+        # Función para cargar libros en el Treeview
+        def cargar_libros(libros):
+            for item in resultado_tree.get_children():
+                resultado_tree.delete(item)
+
+            if libros:
+                for index, libro in enumerate(libros):
+                    tag = "oddrow" if index % 2 == 0 else "evenrow"
+                    resultado_tree.insert(
+                        "",
+                        "end",
+                        values=(*libro, "-"),  # Agregar "-" en la columna "Baja"
+                        tags=(tag,)
+                    )
+            else:
+                resultado_tree.insert("", "end", values=("No se encontraron libros", "", "", "", "", "", ""), tags=("oddrow",))
+
+        # Función para eliminar libro
+        def eliminar_libro(isbn):
+            confirm = messagebox.askyesno("Confirmar Baja", f"¿Está seguro de eliminar el libro con ISBN {isbn}?")
+            if confirm:
+                resultado = libro_controller.eliminar_libro(isbn)
+                if resultado == "Éxito":
+                    messagebox.showinfo("Éxito", f"El libro con ISBN {isbn} ha sido eliminado.")
+                    libros = libro_controller.buscar_libros("")  # Recargar lista completa
+                    cargar_libros(libros)
+                else:
+                    messagebox.showerror("Error", "No se pudo eliminar el libro.")
+
+        # Evento para clic en la columna Baja
+        def on_item_click(event):
+            item_id = resultado_tree.identify_row(event.y)
+            column = resultado_tree.identify_column(event.x)
+            if column == "#7":  # Columna "Baja"
+                isbn = resultado_tree.item(item_id)["values"][0]
+                if isbn:
+                    eliminar_libro(isbn)
+
+        resultado_tree.bind("<Button-1>", on_item_click)
+
+        # Función para buscar libros
         def buscar_libros():
             criterio = criterio_entry.get()
-            if criterio:
-                resultados = libro_controller.buscar_libros(criterio)
-                # Limpiar resultados anteriores
-                for item in resultado_tree.get_children():
-                    resultado_tree.delete(item)
+            libros = libro_controller.buscar_libros(criterio)
+            cargar_libros(libros)
 
-                if resultados:
-                    for index, resultado in enumerate(resultados):
-                        isbn, titulo, genero, anio_publicacion, autor_nombre, cantidad_disponible = resultado
-                        # Alternar etiquetas para las filas
-                        tag = "oddrow" if index % 2 == 0 else "evenrow"
-                        resultado_tree.insert("", "end", values=(isbn, titulo, genero, anio_publicacion, autor_nombre, cantidad_disponible), tags=(tag,))
-                else:
-                    resultado_tree.insert("", "end", values=("No se encontraron libros", "", "", "", "", ""), tags=("oddrow",))
+        # Botón para registrar nuevo libro
+        tk.Button(consulta_window, text="Registrar Nuevo Libro", command=self.open_libros_window).pack(pady=10)
 
-        tk.Button(consulta_window, text="Buscar", command=buscar_libros).pack(pady=5)
+        # Cargar todos los libros al abrir la ventana
+        libros = libro_controller.buscar_libros("")
+        cargar_libros(libros)
 
 
     def open_consulta_autores_window(self):
@@ -464,7 +583,7 @@ class BibliotecaApp:
         frame.place(relx=0.5, rely=0.5, anchor="center")
 
         # Crear el Treeview para mostrar los resultados
-        columns = ("ID", "Usuario", "Libro", "Fecha Préstamo", "Fecha Devolución Estimada", "Fecha Devolución Real")
+        columns = ("ID", "Usuario", "Libro", "Fecha Préstamo", "Fecha Devolución Estimada", "Fecha Devolución Real", "Baja")
         resultado_tree = ttk.Treeview(frame, columns=columns, show="headings", height=20)
         resultado_tree.heading("ID", text="ID")
         resultado_tree.heading("Usuario", text="Usuario")
@@ -472,6 +591,7 @@ class BibliotecaApp:
         resultado_tree.heading("Fecha Préstamo", text="Fecha Préstamo")
         resultado_tree.heading("Fecha Devolución Estimada", text="Devolución Estimada")
         resultado_tree.heading("Fecha Devolución Real", text="Devolución Real")
+        resultado_tree.heading("Baja", text="Baja")
 
         # Configurar columnas
         resultado_tree.column("ID", width=100, anchor="center")
@@ -480,6 +600,7 @@ class BibliotecaApp:
         resultado_tree.column("Fecha Préstamo", width=150, anchor="center")
         resultado_tree.column("Fecha Devolución Estimada", width=150, anchor="center")
         resultado_tree.column("Fecha Devolución Real", width=150, anchor="center")
+        resultado_tree.column("Baja", width=50, anchor="center")
         resultado_tree.pack(pady=10)
 
         # Estilos de las filas y encabezados
@@ -490,31 +611,69 @@ class BibliotecaApp:
         # Alternar colores de filas
         resultado_tree.tag_configure("oddrow", background="#f0f0f0")
         resultado_tree.tag_configure("evenrow", background="#ffffff")
-        resultado_tree.tag_configure("no_data", background="#000000", foreground="#FFFFFF")  # Fondo negro, letra blanca
 
-        try:
-            prestamos = prestamo_controller.obtener_todos_los_prestamos()
+        def eliminar_prestamo(prestamo_id):
+            # Confirmar acción con el usuario
+            confirm = messagebox.askyesno("Confirmar Baja", f"¿Está seguro de eliminar el préstamo ID {prestamo_id}?")
+            if confirm:
+                try:
+                    # Llamar al controlador para eliminar el préstamo
+                    resultado = prestamo_controller.eliminar_prestamo(prestamo_id)
+                    if resultado == "Éxito":
+                        messagebox.showinfo("Éxito", f"El préstamo ID {prestamo_id} ha sido eliminado.")
+                        prestamos = prestamo_controller.obtener_todos_los_prestamos()
+                        cargar_prestamos(prestamos)  # Recargar tabla
+                    else:
+                        messagebox.showerror("Error", "No se pudo eliminar el préstamo.")
+                except Exception as e:
+                    print(f"Error al eliminar préstamo: {e}")
+                    messagebox.showerror("Error", "Ocurrió un error al intentar eliminar el préstamo.")
 
-            # Populate the Treeview
+        def cargar_prestamos(prestamos):
+            # Limpiar resultados anteriores
+            for item in resultado_tree.get_children():
+                resultado_tree.delete(item)
+
             if prestamos:
                 for index, prestamo in enumerate(prestamos):
                     tag = "oddrow" if index % 2 == 0 else "evenrow"
-                    resultado_tree.insert("", "end", values=prestamo, tags=(tag,))
+                    resultado_tree.insert(
+                        "",
+                        "end",
+                        values=(prestamo[0], prestamo[1], prestamo[2], prestamo[3], prestamo[4], prestamo[5], "-"),
+                        tags=(tag,)
+                    )
             else:
-                # If there are no loans, show a single row with a message
-                resultado_tree.insert("", "end", values=("No hay préstamos registrados", "", "", "", "", ""), tags=("no_data",))
+                resultado_tree.insert("", "end", values=("No hay préstamos registrados", "", "", "", "", "", ""), tags=("no_data",))
 
-            # Configure tag for styling no-data message
-            resultado_tree.tag_configure("no_data", background="#000000", foreground="#FFFFFF")  # Black background, white text
+        def on_item_click(event):
+            # Obtener el ítem clickeado
+            item_id = resultado_tree.identify_row(event.y)
+            column = resultado_tree.identify_column(event.x)
+            if column == "#7":  # Columna "Baja"
+                prestamo_id = resultado_tree.item(item_id)["values"][0]
+                eliminar_prestamo(prestamo_id)
+
+        # Asignar evento de clic en el Treeview
+        resultado_tree.bind("<Button-1>", on_item_click)
+
+        try:
+            prestamos = prestamo_controller.obtener_todos_los_prestamos()
+            cargar_prestamos(prestamos)
         except Exception as e:
-            # Manejo de errores con fila unificada
             print(f"Error al obtener préstamos activos: {e}")
-            resultado_tree.insert(
-                "",
-                "end",
-                values=("No hay préstamos activos", "", "", "", "", ""),
-                tags=("no_data",)
-            )
+            resultado_tree.insert("", "end", values=("No hay préstamos activos", "", "", "", "", "", ""), tags=("no_data",))
+        # Botón para registrar nuevo préstamo
+        tk.Button(
+            prestamos_window,
+            text="Registrar Nuevo Préstamo",
+            command=self.open_prestamo_window,
+            font=("Helvetica", 14),
+            bg="#4CAF50",
+            fg="black",
+            width=25,
+            height=2
+        ).pack(pady=20, side=tk.BOTTOM)
 
 
     def open_prestamo_window(self):

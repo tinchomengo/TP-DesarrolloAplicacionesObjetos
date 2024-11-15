@@ -194,5 +194,17 @@ class PrestamoController:
         query = "SELECT COUNT(*) FROM prestamos"
         total = self.db.fetch_query(query)
         return total[0][0] if total else 0
+    
+    def eliminar_prestamo(self, prestamo_id):
+        try:
+            query = "DELETE FROM prestamos WHERE id = ?"
+            self.db.execute_query(query, (prestamo_id,))
+            self.db.commit()
+            print(f"Préstamo ID {prestamo_id} eliminado exitosamente.")
+            return "Éxito"
+        except Exception as e:
+            print(f"Error al eliminar el préstamo ID {prestamo_id}: {e}")
+            return "Error"
+
 
 
