@@ -1,30 +1,28 @@
 from database.conexionBDA import DbSingleton
 from datetime import datetime, timedelta
-from datetime import datetime
 
 class PrestamoController:
     def __init__(self):
         self.db = DbSingleton()
 
-        # Reporte 1: Listar todos los préstamos vencidos
+    # Reporte 1: Listar todos los préstamos vencidos
     def listar_prestamos_vencidos(self):
-        # Asumimos que prestamos vencidos son aquellos donde la fecha de devolución estimada ha pasado y aún no han sido devueltos
+        # Assuming a loan is overdue if the estimated return date has passed and it hasn't been returned
         query = """
         SELECT prestamos.id, usuarios.nombre || ' ' || usuarios.apellido AS usuario,
-               libros.titulo AS libro, prestamos.fecha_prestamo, prestamos.fecha_devolucion
+               libros.titulo AS libro, prestamos.fecha_prestamo, prestamos.fecha_devolucion_estimada
         FROM prestamos
         JOIN usuarios ON prestamos.usuario_id = usuarios.id
         JOIN ejemplares ON prestamos.ejemplar_id = ejemplares.id
         JOIN libros ON ejemplares.libro_isbn = libros.isbn
-        WHERE prestamos.fecha_devolucion IS NULL
-          AND prestamos.fecha_prestamo < DATE('now', '-30 days')
+        WHERE prestamos.fecha_devolucion_real IS NULL
+          AND prestamos.fecha_devolucion_estimada < DATE('now')
         """
         resultado = self.db.fetch_query(query)
         return resultado
 
     # Reporte 2: Listar los libros más prestados en el último mes
     def libros_mas_prestados_ultimo_mes(self):
-        # Asumimos que un préstamo cuenta dentro del mes si su fecha de préstamo es dentro de los últimos 30 días
         fecha_hace_un_mes = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         query = """
         SELECT libros.titulo, COUNT(prestamos.id) AS total_prestamos
@@ -50,16 +48,16 @@ class PrestamoController:
         resultado = self.db.fetch_query(query)
         return resultado
 
-    def registrar_prestamo(self, usuario_id, libro_isbn, fecha_prestamo, fecha_devolucion):
+    def registrar_prestamo(self, usuario_id, libro_isbn, fecha_prestamo, fecha_devolucion_estimada):
         # Convert dates to datetime objects for comparison
         fecha_prestamo_dt = datetime.strptime(fecha_prestamo, "%Y-%m-%d")
-        fecha_devolucion_dt = datetime.strptime(fecha_devolucion, "%Y-%m-%d")
+        fecha_devolucion_estimada_dt = datetime.strptime(fecha_devolucion_estimada, "%Y-%m-%d")
 
-        # Validate that the return date is after the loan date
-        if fecha_devolucion_dt <= fecha_prestamo_dt:
-            print("La fecha de devolución debe ser posterior a la fecha de préstamo.")
-            return "La fecha de devolución debe ser posterior a la fecha de préstamo."
-        
+        # Validate that the estimated return date is after the loan date
+        if fecha_devolucion_estimada_dt <= fecha_prestamo_dt:
+            print("La fecha de devolución estimada debe ser posterior a la fecha de préstamo.")
+            return "La fecha de devolución estimada debe ser posterior a la fecha de préstamo."
+
         # Obtener el tipo de usuario (estudiante o profesor)
         tipo_usuario_query = "SELECT tipo_usuario FROM usuarios WHERE id = ?"
         resultado_usuario = self.db.fetch_query(tipo_usuario_query, (usuario_id,))
@@ -97,12 +95,12 @@ class PrestamoController:
 
         ejemplar_id = ejemplar_result[0][0]
 
-        # Registrar el préstamo
+        # Registrar el préstamo con fecha_devolucion_estimada
         prestamo_query = """
-        INSERT INTO prestamos (usuario_id, ejemplar_id, fecha_prestamo, fecha_devolucion)
+        INSERT INTO prestamos (usuario_id, ejemplar_id, fecha_prestamo, fecha_devolucion_estimada)
         VALUES (?, ?, ?, ?)
         """
-        prestamo_params = (usuario_id, ejemplar_id, fecha_prestamo, fecha_devolucion)
+        prestamo_params = (usuario_id, ejemplar_id, fecha_prestamo, fecha_devolucion_estimada)
         self.db.execute_query(prestamo_query, prestamo_params)
 
         # Actualizar estado del ejemplar a "prestado"
@@ -122,20 +120,22 @@ class PrestamoController:
         print(f"Préstamo registrado para el libro ISBN {libro_isbn} con ejemplar ID {ejemplar_id} para el usuario ID {usuario_id}")
         return "Éxito"
 
-    def registrar_devolucion(self, prestamo_id, estado):
-        # Registrar la devolución del préstamo
+    def registrar_devolucion(self, prestamo_id, estado, fecha_devolucion_real):
+        # Registrar la devolución del préstamo actualizando fecha_devolucion_real
+        #fecha_devolucion_real = datetime.now().strftime('%Y-%m-%d')
+        fecha_devolucion_real = fecha_devolucion_real
         devolver_prestamo_query = """
         UPDATE prestamos 
-        SET fecha_devolucion = CURRENT_DATE
-        WHERE id = ? AND fecha_devolucion IS NULL
+        SET fecha_devolucion_real = ?, estado = ?
+        WHERE id = ? AND fecha_devolucion_real IS NULL
         """
-        self.db.execute_query(devolver_prestamo_query, (prestamo_id,))
+        self.db.execute_query(devolver_prestamo_query, (fecha_devolucion_real, estado, prestamo_id))
 
-        # Obtener el ejemplar asociado al préstamo
+        # Get the related copy (ejemplar) ID
         ejemplar_query = "SELECT ejemplar_id FROM prestamos WHERE id = ?"
         ejemplar_id = self.db.fetch_query(ejemplar_query, (prestamo_id,))[0][0]
 
-        # Actualizar el estado del ejemplar según la devolución (en condiciones o dañado)
+        # Update the state of the copy based on the returned condition (in good condition or damaged)
         actualizar_ejemplar_estado_query = "UPDATE ejemplares SET estado = ? WHERE id = ?"
         self.db.execute_query(actualizar_ejemplar_estado_query, (estado, ejemplar_id))
 
@@ -151,3 +151,37 @@ class PrestamoController:
         self.db.commit()
         print(f"Devolución registrada para el préstamo ID {prestamo_id}")
         return "Éxito"
+
+    def obtener_prestamos_activos(self):
+        query = """
+        SELECT prestamos.id, 
+            usuarios.nombre || ' ' || usuarios.apellido AS usuario,
+            libros.titulo AS libro, 
+            prestamos.fecha_prestamo, 
+            prestamos.fecha_devolucion_estimada
+        FROM prestamos
+        INNER JOIN usuarios ON prestamos.usuario_id = usuarios.id
+        INNER JOIN ejemplares ON prestamos.ejemplar_id = ejemplares.id
+        INNER JOIN libros ON ejemplares.libro_isbn = libros.isbn
+        WHERE prestamos.fecha_devolucion_real IS NULL
+        """
+        resultados = self.db.fetch_query(query)
+        print(f"Resultados de la consulta: {resultados}")
+        return resultados
+    def obtener_todos_los_prestamos(self):
+        query = """
+        SELECT prestamos.id, 
+            usuarios.nombre || ' ' || usuarios.apellido AS usuario,
+            libros.titulo AS libro, 
+            prestamos.fecha_prestamo, 
+            prestamos.fecha_devolucion_estimada,
+            COALESCE(prestamos.fecha_devolucion_real, 'Pendiente') AS fecha_devolucion_real
+        FROM prestamos
+        JOIN usuarios ON prestamos.usuario_id = usuarios.id
+        JOIN ejemplares ON prestamos.ejemplar_id = ejemplares.id
+        JOIN libros ON ejemplares.libro_isbn = libros.isbn
+        """
+        resultados = self.db.fetch_query(query)
+        print(f"Préstamos obtenidos: {resultados}")
+        return resultados
+

@@ -26,5 +26,19 @@ def borrar_todas_las_tablas():
         borrar_tabla(tabla)
     print("Todas las tablas limpiadas con éxito")
 
+def drop_all_tables():
+    db = DbSingleton()
+    
+    # Names of all tables to be dropped
+    tablas = ["prestamos", "usuarios", "libros", "autores", "ejemplares"]
+    
+    # Drop each table
+    for tabla in tablas:
+        db.execute_query(f"DROP TABLE IF EXISTS {tabla}")
+        print(f"Tabla {tabla} eliminada con éxito")
+    
+    db.commit()
+    print("Todas las tablas eliminadas con éxito")
+
 if __name__ == "__main__":
     limpiar_base_de_datos()

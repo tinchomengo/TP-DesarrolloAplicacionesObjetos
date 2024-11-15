@@ -1,0 +1,17 @@
+mostrar porcentaje de usuario según rol que saca cada libro
+
+mostrar porcentaje de genero que sacan los usuarios
+
+ventana aparte para las entidades principales
+
+grillas usuarios, libros, autores, prestamos
+
+en cada grilla hacer alta y baja
+
+abrir archivo pdf automáticamente
+
+genero como desplegable
+
+tratar a cada objeto como una entidad, caca entidad debe tener una interfaz sobre la cual puedo consultar y cada interfaz debe tener en si misma todas las operaciones necesarias para ese objeto. EJ: Libro puedo prestar, agregar uno nuevo, borrar, etc
+
+un solo generador de pdf p/ multiples

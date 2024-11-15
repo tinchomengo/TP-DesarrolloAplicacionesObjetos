@@ -29,12 +29,20 @@ class LibroController:
             return "Error de integridad"
         
     def buscar_libros(self, criterio):
-        # Busca por coincidencia de ISBN exacto o parcial del título
+        # Buscar libros junto con el nombre y apellido del autor
         query = """
-        SELECT isbn, titulo, cantidad_disponible 
-        FROM libros 
-        WHERE isbn = ? OR titulo LIKE ?
+        SELECT 
+            libros.isbn, 
+            libros.titulo, 
+            libros.genero, 
+            libros.anio_publicacion, 
+            autores.nombre || ' ' || autores.apellido AS autor_nombre, 
+            libros.cantidad_disponible 
+        FROM libros
+        JOIN autores ON libros.autor_id = autores.id
+        WHERE libros.isbn = ? OR libros.titulo LIKE ?
         """
         params = (criterio, f"%{criterio}%")
         resultados = self.db.fetch_query(query, params)
         return resultados
+

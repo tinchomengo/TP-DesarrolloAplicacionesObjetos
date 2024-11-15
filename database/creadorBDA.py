@@ -48,21 +48,20 @@ def crear_tablas():
         )
     """)
     
-    # Tabla de Préstamos
+    # Tabla de Préstamos con las nuevas columnas para fechas de devolución estimada y real
     db.execute_query("""
         CREATE TABLE IF NOT EXISTS prestamos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             usuario_id INTEGER,
             ejemplar_id INTEGER,
             fecha_prestamo DATE NOT NULL,
-            fecha_devolucion DATE,
+            fecha_devolucion_estimada DATE,  -- Nueva columna para la fecha de devolución estimada
+            fecha_devolucion_real DATE,      -- Nueva columna para la fecha de devolución real
             estado TEXT DEFAULT 'en condiciones',
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
             FOREIGN KEY (ejemplar_id) REFERENCES ejemplares(id)
         )
     """)
-
-
 
     db.commit()
     print("Tablas Creadas")

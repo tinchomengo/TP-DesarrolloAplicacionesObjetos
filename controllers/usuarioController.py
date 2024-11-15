@@ -14,3 +14,12 @@ class UsuarioController:
         self.db.execute_query(query, params)
         self.db.commit()
         print(f"Usuario {nombre} {apellido} registrado con éxito")
+    def buscar_usuarios_por_nombre(self, nombre):
+        query = """
+        SELECT * FROM usuarios
+        WHERE nombre LIKE ? OR apellido LIKE ?
+        """
+        params = (f"%{nombre}%", f"%{nombre}%")
+        resultados = self.db.fetch_query(query, params)
+        return resultados
+

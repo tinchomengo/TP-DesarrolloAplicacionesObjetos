@@ -14,3 +14,12 @@ class AutorController:
         self.db.execute_query(query, params)
         self.db.commit()
         print(f"Autor {nombre} {apellido} registrado con éxito")
+    def buscar_autores_por_nombre(self, nombre):
+        query = """
+        SELECT * FROM autores
+        WHERE nombre LIKE ? OR apellido LIKE ?
+        """
+        params = (f"%{nombre}%", f"%{nombre}%")
+        resultados = self.db.fetch_query(query, params)
+        return resultados
+

@@ -1,4 +1,5 @@
 from conexionBDA import DbSingleton
+from datetime import datetime, timedelta
 
 def insertar_datos():
     db = DbSingleton()
@@ -52,6 +53,20 @@ def insertar_datos():
                 INSERT INTO ejemplares (libro_isbn, estado)
                 VALUES (?, 'en condiciones')
             """, (isbn,))
+
+    # Insertar préstamos con fechas de préstamo y devolución estimada
+    prestamos = [
+        (1, 1, datetime.now().strftime("%Y-%m-%d"), (datetime.now() + timedelta(days=10)).strftime("%Y-%m-%d"), None),
+        (2, 2, datetime.now().strftime("%Y-%m-%d"), (datetime.now() + timedelta(days=15)).strftime("%Y-%m-%d"), None),
+        (3, 3, datetime.now().strftime("%Y-%m-%d"), (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d"), None),
+        (4, 4, datetime.now().strftime("%Y-%m-%d"), (datetime.now() + timedelta(days=20)).strftime("%Y-%m-%d"), None),
+        (5, 5, datetime.now().strftime("%Y-%m-%d"), (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d"), None)
+    ]
+    for usuario_id, ejemplar_id, fecha_prestamo, fecha_devolucion_estimada, fecha_devolucion_real in prestamos:
+        db.execute_query("""
+            INSERT INTO prestamos (usuario_id, ejemplar_id, fecha_prestamo, fecha_devolucion_estimada, fecha_devolucion_real)
+            VALUES (?, ?, ?, ?, ?)
+        """, (usuario_id, ejemplar_id, fecha_prestamo, fecha_devolucion_estimada, fecha_devolucion_real))
 
     db.commit()
     print("Datos insertados correctamente")
