@@ -521,45 +521,60 @@ class BibliotecaApp:
         # Ventana para registrar un préstamo de libro
         prestamo_window = tk.Toplevel(self.root)
         prestamo_window.title("Registrar Préstamo de Libro")
-        prestamo_window.geometry("400x300")
+        prestamo_window.geometry("500x400")
 
-        # Configurar el fondo de pantalla
         self.set_window_background(prestamo_window)
-        
+
+        # Obtener usuarios y libros
+        usuarios = usuario_controller.buscar_usuarios_por_nombre("")  # Buscar todos los usuarios
+        libros = libro_controller.buscar_libros("")  # Buscar todos los libros
+
+        # Crear listas con nombres de usuarios y títulos de libros
+        usuarios_opciones = [f"{usuario[1]} {usuario[2]}" for usuario in usuarios]  # Nombre + Apellido
+        libros_opciones = [libro[1] for libro in libros]  # Título del libro
+
+        # Diccionarios para mapear nombres/títulos con sus IDs/ISBNs
+        usuarios_dict = {f"{usuario[1]} {usuario[2]}": usuario[0] for usuario in usuarios}  # {Nombre: ID}
+        libros_dict = {libro[1]: libro[0] for libro in libros}  # {Título: ISBN}
+
         # Marco centralizado
         frame = tk.Frame(prestamo_window)
         frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        # Agregar campos dentro del marco
-        tk.Label(frame, text="Usuario ID:").grid(row=0, column=0, padx=5, pady=5)
-        usuario_id_entry = tk.Entry(frame)
-        usuario_id_entry.grid(row=0, column=1, padx=5, pady=5)
+        # Seleccionar usuario
+        tk.Label(frame, text="Seleccionar Usuario:").grid(row=0, column=0, padx=5, pady=5)
+        usuario_dropdown = ttk.Combobox(frame, values=usuarios_opciones, state="readonly", width=25)
+        usuario_dropdown.grid(row=0, column=1, padx=5, pady=5)
 
-        tk.Label(frame, text="Libro ISBN:").grid(row=1, column=0, padx=5, pady=5)
-        libro_isbn_entry = tk.Entry(frame)
-        libro_isbn_entry.grid(row=1, column=1, padx=5, pady=5)
+        # Seleccionar libro
+        tk.Label(frame, text="Seleccionar Libro:").grid(row=1, column=0, padx=5, pady=5)
+        libro_dropdown = ttk.Combobox(frame, values=libros_opciones, state="readonly", width=25)
+        libro_dropdown.grid(row=1, column=1, padx=5, pady=5)
 
+        # Fecha de préstamo
         tk.Label(frame, text="Fecha de Préstamo (YYYY-MM-DD):").grid(row=2, column=0, padx=5, pady=5)
-        fecha_prestamo = datetime.now().strftime("%Y-%m-%d")  # Fecha actual
-        tk.Label(frame, text=fecha_prestamo).grid(row=2, column=1, padx=5, pady=5)  # Mostrar la fecha como un Label
+        fecha_prestamo = datetime.now().strftime("%Y-%m-%d")
+        tk.Label(frame, text=fecha_prestamo).grid(row=2, column=1, padx=5, pady=5)
 
-
+        # Fecha de devolución estimada
         tk.Label(frame, text="Fecha de Devolución (YYYY-MM-DD):").grid(row=3, column=0, padx=5, pady=5)
         fecha_devolucion_entry = tk.Entry(frame)
         fecha_devolucion_entry.grid(row=3, column=1, padx=5, pady=5)
 
         def registrar_prestamo():
-            usuario_id = usuario_id_entry.get()
-            libro_isbn = libro_isbn_entry.get()
+            usuario_seleccionado = usuario_dropdown.get()
+            libro_seleccionado = libro_dropdown.get()
             fecha_devolucion = fecha_devolucion_entry.get()
 
-            if usuario_id.isdigit() and libro_isbn and self.validar_fecha(fecha_prestamo) and self.validar_fecha(fecha_devolucion):
-                resultado = prestamo_controller.registrar_prestamo(int(usuario_id), libro_isbn, fecha_prestamo, fecha_devolucion)
+            if usuario_seleccionado and libro_seleccionado and self.validar_fecha(fecha_devolucion):
+                usuario_id = usuarios_dict[usuario_seleccionado]
+                libro_isbn = libros_dict[libro_seleccionado]
 
+                resultado = prestamo_controller.registrar_prestamo(usuario_id, libro_isbn, fecha_prestamo, fecha_devolucion)
                 if resultado == "Éxito":
                     messagebox.showinfo("Éxito", "Préstamo registrado exitosamente", parent=prestamo_window)
-                    usuario_id_entry.delete(0, tk.END)
-                    libro_isbn_entry.delete(0, tk.END)
+                    usuario_dropdown.set("")
+                    libro_dropdown.set("")
                     fecha_devolucion_entry.delete(0, tk.END)
                 else:
                     messagebox.showwarning("Advertencia", resultado, parent=prestamo_window)
