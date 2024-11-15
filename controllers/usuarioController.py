@@ -47,4 +47,8 @@ class UsuarioController:
         except Exception as e:
             print(f"Error al eliminar usuario: {e}")
             raise Exception("Error al intentar eliminar el usuario.")
+    def obtener_multa_usuario(self, usuario_id):
+        query = "SELECT multa FROM usuarios WHERE id = ?"
+        resultado = self.db.fetch_query(query, (usuario_id,))
+        return resultado[0][0] if resultado else 0
 

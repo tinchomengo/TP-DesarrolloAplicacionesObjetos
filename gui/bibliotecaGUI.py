@@ -277,7 +277,7 @@ class BibliotecaApp:
     def open_consulta_usuarios_window(self):
         consulta_window = tk.Toplevel(self.root)
         consulta_window.title("Consultar Usuarios")
-        consulta_window.geometry("1000x500")  # Ajustar tamaño para espacio adicional
+        consulta_window.geometry("1000x500")
 
         self.set_window_background(consulta_window)
 
@@ -288,26 +288,26 @@ class BibliotecaApp:
         tk.Label(frame_top, text="Buscar por Nombre o Apellido:").grid(row=0, column=0, padx=5)
         criterio_entry = tk.Entry(frame_top, width=30)
         criterio_entry.grid(row=0, column=1, padx=5)
-
         tk.Button(frame_top, text="Buscar", command=lambda: buscar_usuarios()).grid(row=0, column=2, padx=5)
 
         # Configuración de tabla
-        columns = ("ID", "Nombre", "Apellido", "Tipo de Usuario", "Dirección", "Teléfono", "Baja")
+        columns = ("ID", "Nombre", "Apellido", "Tipo de Usuario", "Dirección", "Teléfono", "Multa")
         resultado_tree = ttk.Treeview(consulta_window, columns=columns, show="headings", height=15)
         for col in columns:
             resultado_tree.heading(col, text=col)
             resultado_tree.column(col, width=150, anchor="center")
+        resultado_tree.column("ID", width=50, anchor="center")
+        resultado_tree.column("Multa", width=100, anchor="center")
         resultado_tree.pack(pady=10)
 
-        resultado_tree.column("ID", width=50, anchor="center")
-        resultado_tree.column("Baja", width=50, anchor="center")
-
+        # Estilos
         style = ttk.Style()
         style.configure("Treeview", rowheight=32, font=("Helvetica", 15), foreground="black")
         style.configure("Treeview.Heading", font=("Helvetica", 13, "bold"))
 
         resultado_tree.tag_configure("oddrow", background="#f0f0f0")
         resultado_tree.tag_configure("evenrow", background="#ffffff")
+
 
         # Función para cargar datos
         def cargar_usuarios(usuarios):
@@ -320,7 +320,7 @@ class BibliotecaApp:
                     resultado_tree.insert(
                         "",
                         "end",
-                        values=(usuario[0], usuario[1], usuario[2], usuario[3], usuario[4], usuario[5], "-"),
+                        values=usuario,
                         tags=(tag,)
                     )
             else:
@@ -519,31 +519,36 @@ class BibliotecaApp:
         libros = libro_controller.buscar_libros("")
         cargar_libros(libros)
 
-
     def open_consulta_autores_window(self):
         consulta_window = tk.Toplevel(self.root)
         consulta_window.title("Consultar Autores")
-        consulta_window.geometry("1000x400")
+        consulta_window.geometry("1000x500")  # Ajustar tamaño para espacio adicional
 
         self.set_window_background(consulta_window)
 
-        tk.Label(consulta_window, text="Buscar por Nombre o Apellido:").pack(pady=10)
-        criterio_entry = tk.Entry(consulta_window, width=30)
-        criterio_entry.pack(pady=5)
+        # Frame superior para la búsqueda
+        frame_top = tk.Frame(consulta_window)
+        frame_top.pack(pady=10)
 
+        # Campo de entrada y botón de búsqueda en la misma fila
+        tk.Label(frame_top, text="Buscar por Nombre o Apellido:").grid(row=0, column=0, padx=5)
+        criterio_entry = tk.Entry(frame_top, width=30)
+        criterio_entry.grid(row=0, column=1, padx=5)
+        tk.Button(frame_top, text="Buscar", command=lambda: buscar_autores()).grid(row=0, column=2, padx=5)
+
+        # Crear el Treeview para mostrar los resultados en forma de tabla
         columns = ("ID", "Nombre", "Apellido", "Nacionalidad")
         resultado_tree = ttk.Treeview(consulta_window, columns=columns, show="headings", height=15)
-        resultado_tree.heading("ID", text="ID")
-        resultado_tree.heading("Nombre", text="Nombre")
-        resultado_tree.heading("Apellido", text="Apellido")
-        resultado_tree.heading("Nacionalidad", text="Nacionalidad")
-
-        resultado_tree.column("ID", width=190, anchor="center")
+        for col in columns:
+            resultado_tree.heading(col, text=col)
+            resultado_tree.column(col, anchor="center")
+        resultado_tree.column("ID", width=100, anchor="center")
         resultado_tree.column("Nombre", width=200, anchor="center")
         resultado_tree.column("Apellido", width=200, anchor="center")
         resultado_tree.column("Nacionalidad", width=200, anchor="center")
         resultado_tree.pack(pady=10)
 
+        # Estilos para ajustar el tamaño de fuente y centrado de filas
         style = ttk.Style()
         style.configure("Treeview", rowheight=32, font=("Helvetica", 15), foreground="black")
         style.configure("Treeview.Heading", font=("Helvetica", 13, "bold"))
@@ -551,21 +556,45 @@ class BibliotecaApp:
         resultado_tree.tag_configure("oddrow", background="#f0f0f0")
         resultado_tree.tag_configure("evenrow", background="#ffffff")
 
+        # Función para cargar datos en el Treeview
+        def cargar_autores(autores):
+            for item in resultado_tree.get_children():
+                resultado_tree.delete(item)
+
+            if autores:
+                for index, autor in enumerate(autores):
+                    tag = "oddrow" if index % 2 == 0 else "evenrow"
+                    resultado_tree.insert(
+                        "",
+                        "end",
+                        values=autor,
+                        tags=(tag,)
+                    )
+            else:
+                resultado_tree.insert("", "end", values=("No se encontraron autores", "", "", ""), tags=("oddrow",))
+
+        # Función para buscar autores
         def buscar_autores():
             criterio = criterio_entry.get()
-            if criterio:
-                resultados = autor_controller.buscar_autores_por_nombre(criterio)
-                for item in resultado_tree.get_children():
-                    resultado_tree.delete(item)
+            autores = autor_controller.buscar_autores_por_nombre(criterio)
+            cargar_autores(autores)
 
-                if resultados:
-                    for index, resultado in enumerate(resultados):
-                        tag = "oddrow" if index % 2 == 0 else "evenrow"
-                        resultado_tree.insert("", "end", values=resultado, tags=(tag,))
-                else:
-                    resultado_tree.insert("", "end", values=("No se encontraron autores", "", "", ""), tags=("oddrow",))
+        # Botón para registrar un nuevo autor
+        tk.Button(
+            consulta_window,
+            text="Registrar Nuevo Autor",
+            command=self.open_autores_window,
+            font=("Helvetica", 14),
+            bg="#4CAF50",
+            fg="black",
+            width=25,
+            height=2
+        ).pack(pady=20, side=tk.BOTTOM)
 
-        tk.Button(consulta_window, text="Buscar", command=buscar_autores).pack(pady=5)
+        # Cargar todos los autores al abrir la ventana
+        autores = autor_controller.buscar_autores_por_nombre("")
+        cargar_autores(autores)
+
 
     def open_prestamos_activos_window(self):
         # Ventana para consultar préstamos activos

@@ -34,17 +34,17 @@ def insertar_datos():
 
     # Insertar usuarios
     usuarios = [
-        ("Carlos", "Pérez", "estudiante", "Calle Falsa 123", "555-1234"),
-        ("Ana", "Gómez", "profesor", "Avenida Siempre Viva 456", "555-5678"),
-        ("Luis", "Martínez", "estudiante", "Boulevard de los Sueños 789", "555-8765"),
-        ("María", "López", "profesor", "Camino del Rey 101", "555-4321"),
-        ("José", "Rodríguez", "estudiante", "Vía Láctea 202", "555-3456")
+        ("Carlos", "Pérez", "estudiante", "Calle Falsa 123", "555-1234", 0),
+        ("Ana", "Gómez", "profesor", "Avenida Siempre Viva 456", "555-5678", 0),
+        ("Luis", "Martínez", "estudiante", "Boulevard de los Sueños 789", "555-8765", 0),
+        ("María", "López", "profesor", "Camino del Rey 101", "555-4321", 0),
+        ("José", "Rodríguez", "estudiante", "Vía Láctea 202", "555-3456", 0)
     ]
-    for nombre, apellido, tipo_usuario, direccion, telefono in usuarios:
+    for nombre, apellido, tipo_usuario, direccion, telefono, multa in usuarios:
         db.execute_query("""
-            INSERT INTO usuarios (nombre, apellido, tipo_usuario, direccion, telefono)
-            VALUES (?, ?, ?, ?, ?)
-        """, (nombre, apellido, tipo_usuario, direccion, telefono))
+            INSERT INTO usuarios (nombre, apellido, tipo_usuario, direccion, telefono, multa)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (nombre, apellido, tipo_usuario, direccion, telefono, multa))
 
     # Insertar ejemplares para cada libro según la cantidad disponible
     for isbn, _, _, _, _, cantidad_disponible in libros:

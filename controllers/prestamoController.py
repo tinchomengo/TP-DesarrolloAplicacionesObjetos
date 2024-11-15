@@ -126,17 +126,15 @@ class PrestamoController:
         return "Éxito"
 
     def registrar_devolucion(self, prestamo_id, estado, fecha_devolucion_real):
-        # Registrar la devolución del préstamo actualizando fecha_devolucion_real
-        #fecha_devolucion_real = datetime.now().strftime('%Y-%m-%d')
-        fecha_devolucion_real = fecha_devolucion_real
-        devolver_prestamo_query = """
-        UPDATE prestamos 
-        SET fecha_devolucion_real = ?, estado = ?
-        WHERE id = ? AND fecha_devolucion_real IS NULL
-        """
-        self.db.execute_query(devolver_prestamo_query, (fecha_devolucion_real, estado, prestamo_id))
+        # Obtener información del préstamo
+        query_prestamo = "SELECT usuario_id, fecha_devolucion_estimada FROM prestamos WHERE id = ?"
+        prestamo = self.db.fetch_query(query_prestamo, (prestamo_id,))
+        if not prestamo:
+            return "Préstamo no encontrado."
 
-        # Get the related copy (ejemplar) ID
+        usuario_id, fecha_devolucion_estimada = prestamo[0]
+
+                # Get the related copy (ejemplar) ID
         ejemplar_query = "SELECT ejemplar_id FROM prestamos WHERE id = ?"
         ejemplar_id = self.db.fetch_query(ejemplar_query, (prestamo_id,))[0][0]
 
@@ -153,9 +151,28 @@ class PrestamoController:
             """
             self.db.execute_query(actualizar_cantidad_libro_query, (ejemplar_id,))
 
-        # Confirmar cambios
+        # Calcular días de retraso
+        fecha_devolucion_estimada = datetime.strptime(fecha_devolucion_estimada, "%Y-%m-%d")
+        fecha_devolucion_real = datetime.strptime(fecha_devolucion_real, "%Y-%m-%d")
+        dias_retraso = (fecha_devolucion_real - fecha_devolucion_estimada).days
+
+        multa = 0
+        if dias_retraso > 0:
+            multa = dias_retraso * 100
+
+            # Actualizar la multa del usuario
+            query_actualizar_multa = "UPDATE usuarios SET multa = multa + ? WHERE id = ?"
+            self.db.execute_query(query_actualizar_multa, (multa, usuario_id))
+
+        # Actualizar el estado del préstamo
+        query_actualizar_prestamo = """
+        UPDATE prestamos
+        SET estado = ?, fecha_devolucion_real = ?
+        WHERE id = ?
+        """
+        self.db.execute_query(query_actualizar_prestamo, (estado, fecha_devolucion_real, prestamo_id))
         self.db.commit()
-        print(f"Devolución registrada para el préstamo ID {prestamo_id}")
+
         return "Éxito"
 
     def obtener_prestamos_activos(self):

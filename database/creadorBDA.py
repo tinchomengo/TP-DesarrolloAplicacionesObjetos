@@ -34,7 +34,8 @@ def crear_tablas():
             apellido TEXT NOT NULL,
             tipo_usuario TEXT CHECK(tipo_usuario IN ('estudiante', 'profesor')),
             direccion TEXT,
-            telefono TEXT
+            telefono TEXT,
+            multa INTEGER DEFAULT 0
         )
     """)
 

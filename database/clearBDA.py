@@ -41,4 +41,4 @@ def drop_all_tables():
     print("Todas las tablas eliminadas con éxito")
 
 if __name__ == "__main__":
-    limpiar_base_de_datos()
+    drop_all_tables()
