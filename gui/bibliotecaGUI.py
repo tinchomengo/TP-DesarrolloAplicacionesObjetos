@@ -13,6 +13,9 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import landscape
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
 
 # Inicializamos el controlador de préstamo
 
@@ -475,8 +478,8 @@ class BibliotecaApp:
         resultado_tree.column("Usuario", width=200, anchor="center")
         resultado_tree.column("Libro", width=200, anchor="center")
         resultado_tree.column("Fecha Préstamo", width=150, anchor="center")
-        resultado_tree.column("Fecha Devolución Estimada", width=180, anchor="center")
-        resultado_tree.column("Fecha Devolución Real", width=180, anchor="center")
+        resultado_tree.column("Fecha Devolución Estimada", width=150, anchor="center")
+        resultado_tree.column("Fecha Devolución Real", width=150, anchor="center")
         resultado_tree.pack(pady=10)
 
         # Estilos de las filas y encabezados
@@ -624,55 +627,76 @@ class BibliotecaApp:
     def open_reportes_window(self):
         reportes_window = tk.Toplevel(self.root)
         reportes_window.title("Seleccionar Reporte")
-        reportes_window.geometry("400x300")
+        reportes_window.geometry("500x400")  # Tamaño ajustado
 
-        # Configurar el fondo de pantalla
         self.set_window_background(reportes_window)
 
-        # Marco centralizado
         frame = tk.Frame(reportes_window)
         frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        # Botones de selección de reportes dentro del marco
-        tk.Button(frame, text="Préstamos Vencidos", command=self.mostrar_prestamos_vencidos, width=30).pack(pady=10)
-        tk.Button(frame, text="Libros Más Prestados Último Mes", command=self.mostrar_libros_mas_prestados, width=30).pack(pady=10)
-        tk.Button(frame, text="Usuarios con Más Préstamos", command=self.mostrar_usuarios_mas_prestamos, width=30).pack(pady=10)
+        # Dropdown para elegir el tipo de reporte
+        tk.Label(frame, text="Seleccionar Tipo de Reporte:", font=("Helvetica", 12)).pack(pady=10)
+        reporte_tipo = ttk.Combobox(frame, values=["Tabular", "Gráfico"], state="readonly", width=20)
+        reporte_tipo.pack(pady=5)
+        reporte_tipo.set("Tabular")  # Valor por defecto
+
+        # Botones para generar los reportes
+        def generar_reporte_prestamos_vencidos():
+            if reporte_tipo.get() == "Tabular":
+                self.mostrar_prestamos_vencidos()
+            else:
+                self.mostrar_prestamos_vencidos_grafico()
+
+        def generar_reporte_libros_mas_prestados():
+            if reporte_tipo.get() == "Tabular":
+                self.mostrar_libros_mas_prestados()
+            else:
+                self.mostrar_libros_mas_prestados_grafico()
+
+        def generar_reporte_usuarios_mas_prestamos():
+            if reporte_tipo.get() == "Tabular":
+                self.mostrar_usuarios_mas_prestamos()
+            else:
+                self.mostrar_usuarios_mas_prestamos_grafico()
+
+        tk.Button(frame, text="Préstamos Vencidos", command=generar_reporte_prestamos_vencidos, width=30).pack(pady=10)
+        tk.Button(frame, text="Libros Más Prestados Último Mes", command=generar_reporte_libros_mas_prestados, width=30).pack(pady=10)
+        tk.Button(frame, text="Usuarios con Más Préstamos", command=generar_reporte_usuarios_mas_prestamos, width=30).pack(pady=10)
 
     def generar_pdf(self, titulo, encabezados, filas, nombre_archivo):
-        # Obtener la ruta absoluta a la carpeta 'reports' en el directorio raíz
+        # Ruta para la carpeta 'reports'
         reports_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'reports'))
-        
-        # Crear la carpeta 'reports' si no existe
         if not os.path.exists(reports_dir):
             os.makedirs(reports_dir)
         
         # Ruta completa del archivo PDF
         pdf_path = os.path.join(reports_dir, nombre_archivo)
         
-        # Crear el documento PDF
-        doc = SimpleDocTemplate(pdf_path, pagesize=A4)
+        # Configuración del documento con orientación horizontal
+        doc = SimpleDocTemplate(pdf_path, pagesize=landscape(A4))
         
         # Estilos de documento
         styles = getSampleStyleSheet()
         title_style = styles["Title"]
-        title_style.textColor = colors.HexColor("#4B0082")  # Color púrpura oscuro
+        title_style.textColor = colors.HexColor("#4B0082")
         title_style.fontSize = 18
         title_paragraph = Paragraph(titulo, title_style)
 
         # Configuración de la tabla
-        table_data = [encabezados] + filas  # Encabezados + filas de datos
-        table = Table(table_data, colWidths=[2 * inch, 2 * inch, 2 * inch, 2 * inch])  # Ancho ajustado a 4 columnas
+        col_widths = [2 * inch, 2 * inch, 2 * inch, 1.5 * inch, 1.5 * inch, 1.5 * inch]
+        table_data = [encabezados] + filas
+        table = Table(table_data, colWidths=col_widths)
 
         # Estilos de la tabla
         table_style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#4B0082")),  # Fondo púrpura para encabezados
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Texto blanco para encabezados
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Alineación centrada para todos los elementos
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Negrita en encabezados
-            ('FONTSIZE', (0, 0), (-1, -1), 10),  # Tamaño de fuente
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Espaciado inferior en encabezados
-            ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),  # Fondo gris claro en filas
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray)  # Bordes grises en toda la tabla
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#4B0082")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray)
         ])
         table.setStyle(table_style)
 
@@ -682,25 +706,52 @@ class BibliotecaApp:
         
         messagebox.showinfo("PDF Exportado", f"El reporte '{titulo}' ha sido exportado como '{nombre_archivo}' en la carpeta 'reports'.")
 
-        # Intentar abrir el PDF automáticamente según el sistema operativo
+        # Intentar abrir el PDF automáticamente
         try:
-            if os.name == 'nt':  # Para sistemas Windows
+            if os.name == 'nt':  # Windows
                 os.startfile(pdf_path)
-            else:  # Para otros sistemas operativos (MacOS, Linux)
-                print("Abriendo PDF automáticamente... en mac")
+            else:  # Otros sistemas (MacOS, Linux)
                 subprocess.run(["open", pdf_path])
         except Exception as e:
             messagebox.showwarning("Error al abrir PDF", f"No se pudo abrir el archivo PDF automáticamente: {e}")
+    def mostrar_grafico(self, fig):
+        grafico_window = tk.Toplevel(self.root)
+        grafico_window.title("Visualización de Reporte")
+        grafico_window.geometry("800x600")
+
+        canvas = FigureCanvasTkAgg(fig, master=grafico_window)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        tk.Button(grafico_window, text="Cerrar", command=grafico_window.destroy).pack(pady=10)
+
 
     def mostrar_prestamos_vencidos(self):
         resultado = prestamo_controller.listar_prestamos_vencidos()
         if resultado:
-            encabezados = ["ID", "Usuario", "Libro", "Fecha Préstamo"]
-            filas = [[row[0], row[1], row[2], row[3]] for row in resultado]
+            encabezados = ["ID", "Usuario", "Libro", "Fecha Estimada", "Fecha Real", "Días de Atraso"]
+            filas = [
+                [row[0], row[1], row[2], row[3], row[4], int(row[5])] for row in resultado
+            ]
         else:
-            encabezados = ["ID", "Usuario", "Libro", "Fecha Préstamo"]
-            filas = [["Sin datos", "", "", ""]]
+            encabezados = ["ID", "Usuario", "Libro", "Fecha Estimada", "Fecha Real", "Días de Atraso"]
+            filas = [["Sin datos", "", "", "", "", ""]]
+        
         self.generar_pdf("Préstamos Vencidos", encabezados, filas, "prestamos_vencidos.pdf")
+    def mostrar_prestamos_vencidos_grafico(self):
+        total_prestamos = prestamo_controller.obtener_total_prestamos()
+        prestamos_vencidos = len(prestamo_controller.listar_prestamos_vencidos())
+        labels = ["Préstamos Vencidos", "Préstamos a Tiempo"]
+        sizes = [prestamos_vencidos, total_prestamos - prestamos_vencidos]
+        colors = ['#FF6F61', '#6B8E23']
+
+        fig, ax = plt.subplots()
+        ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors)
+        ax.axis('equal')  # Circulo perfecto
+        ax.set_title("Préstamos Vencidos")
+
+        self.mostrar_grafico(fig)
+
 
     def mostrar_libros_mas_prestados(self):
         resultado = prestamo_controller.libros_mas_prestados_ultimo_mes()
@@ -711,6 +762,20 @@ class BibliotecaApp:
             encabezados = ["Libro", "Total Préstamos"]
             filas = [["Sin datos", ""]]
         self.generar_pdf("Libros Más Prestados Último Mes", encabezados, filas, "libros_mas_prestados.pdf")
+    def mostrar_libros_mas_prestados_grafico(self):
+        data = prestamo_controller.libros_mas_prestados_ultimo_mes()
+        libros = [row[0] for row in data]
+        prestamos = [row[1] for row in data]
+
+        fig, ax = plt.subplots()
+        ax.bar(libros, prestamos, color='#1E90FF')
+        ax.set_xlabel("Libros")
+        ax.set_ylabel("Total de Préstamos")
+        ax.set_title("Libros Más Prestados Último Mes")
+        ax.tick_params(axis='x', rotation=45)  # Rotar nombres de libros
+
+        self.mostrar_grafico(fig)
+
 
     def mostrar_usuarios_mas_prestamos(self):
         resultado = prestamo_controller.usuarios_mas_prestamos()
@@ -721,6 +786,20 @@ class BibliotecaApp:
             encabezados = ["Usuario", "Total Préstamos"]
             filas = [["Sin datos", ""]]
         self.generar_pdf("Usuarios con Más Préstamos", encabezados, filas, "usuarios_mas_prestamos.pdf")
+    def mostrar_usuarios_mas_prestamos_grafico(self):
+        data = prestamo_controller.usuarios_mas_prestamos()
+        usuarios = [row[0] for row in data]
+        prestamos = [row[1] for row in data]
+
+        fig, ax = plt.subplots()
+        ax.bar(usuarios, prestamos, color='#FFD700')
+        ax.set_xlabel("Usuarios")
+        ax.set_ylabel("Total de Préstamos")
+        ax.set_title("Usuarios con Más Préstamos")
+        ax.tick_params(axis='x', rotation=45)  # Rotar nombres de usuarios
+
+        self.mostrar_grafico(fig)
+
 
 if __name__ == "__main__":
     root = tk.Tk()

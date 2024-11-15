@@ -7,19 +7,24 @@ class PrestamoController:
 
     # Reporte 1: Listar todos los préstamos vencidos
     def listar_prestamos_vencidos(self):
-        # Assuming a loan is overdue if the estimated return date has passed and it hasn't been returned
+        # Obtener préstamos vencidos donde la fecha de devolución real es mayor a la estimada
         query = """
-        SELECT prestamos.id, usuarios.nombre || ' ' || usuarios.apellido AS usuario,
-               libros.titulo AS libro, prestamos.fecha_prestamo, prestamos.fecha_devolucion_estimada
+        SELECT 
+            prestamos.id, 
+            usuarios.nombre || ' ' || usuarios.apellido AS usuario, 
+            libros.titulo AS libro, 
+            prestamos.fecha_devolucion_estimada, 
+            prestamos.fecha_devolucion_real,
+            JULIANDAY(prestamos.fecha_devolucion_real) - JULIANDAY(prestamos.fecha_devolucion_estimada) AS dias_atraso
         FROM prestamos
         JOIN usuarios ON prestamos.usuario_id = usuarios.id
         JOIN ejemplares ON prestamos.ejemplar_id = ejemplares.id
         JOIN libros ON ejemplares.libro_isbn = libros.isbn
-        WHERE prestamos.fecha_devolucion_real IS NULL
-          AND prestamos.fecha_devolucion_estimada < DATE('now')
+        WHERE prestamos.fecha_devolucion_real > prestamos.fecha_devolucion_estimada
         """
         resultado = self.db.fetch_query(query)
         return resultado
+
 
     # Reporte 2: Listar los libros más prestados en el último mes
     def libros_mas_prestados_ultimo_mes(self):
@@ -140,12 +145,13 @@ class PrestamoController:
         self.db.execute_query(actualizar_ejemplar_estado_query, (estado, ejemplar_id))
 
         # Incrementar la cantidad disponible del libro en la tabla `libros`
-        actualizar_cantidad_libro_query = """
-        UPDATE libros 
-        SET cantidad_disponible = cantidad_disponible + 1 
-        WHERE isbn = (SELECT libro_isbn FROM ejemplares WHERE id = ?)
-        """
-        self.db.execute_query(actualizar_cantidad_libro_query, (ejemplar_id,))
+        if estado == "en condiciones":
+            actualizar_cantidad_libro_query = """
+            UPDATE libros 
+            SET cantidad_disponible = cantidad_disponible + 1 
+            WHERE isbn = (SELECT libro_isbn FROM ejemplares WHERE id = ?)
+            """
+            self.db.execute_query(actualizar_cantidad_libro_query, (ejemplar_id,))
 
         # Confirmar cambios
         self.db.commit()
@@ -184,4 +190,9 @@ class PrestamoController:
         resultados = self.db.fetch_query(query)
         print(f"Préstamos obtenidos: {resultados}")
         return resultados
+    def obtener_total_prestamos(self):
+        query = "SELECT COUNT(*) FROM prestamos"
+        total = self.db.fetch_query(query)
+        return total[0][0] if total else 0
+
 

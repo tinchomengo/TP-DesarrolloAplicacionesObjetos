@@ -21,12 +21,23 @@ class LibroController:
         params = (isbn, titulo, genero, anio_publicacion, autor_id, cantidad_disponible)
         try:
             self.db.execute_query(query_insertar, params)
+
+            # Insertar ejemplares en la tabla 'ejemplares' para el libro registrado
+            for _ in range(cantidad_disponible):
+                query_insertar_ejemplar = """
+                INSERT INTO ejemplares (libro_isbn, estado)
+                VALUES (?, 'en condiciones')
+                """
+                self.db.execute_query(query_insertar_ejemplar, (isbn,))
+            
+            # Confirmar los cambios
             self.db.commit()
-            print(f"Libro '{titulo}' registrado con éxito")
+            print(f"Libro '{titulo}' registrado con éxito, junto con {cantidad_disponible} ejemplares.")
             return "Éxito"
         except IntegrityError as e:
             print(f"Error al registrar el libro: {e}")
             return "Error de integridad"
+
         
     def buscar_libros(self, criterio):
         # Buscar libros junto con el nombre y apellido del autor
