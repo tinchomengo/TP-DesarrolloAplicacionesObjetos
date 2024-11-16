@@ -614,7 +614,7 @@ class BibliotecaApp:
         # Crear el Treeview para mostrar los resultados
         columns = ("ID", "Usuario", "Libro", "Fecha Préstamo", "Fecha Devolución Estimada", "Fecha Devolución Real", "Baja")
         resultado_tree = ttk.Treeview(frame, columns=columns, show="headings", height=20)
-        resultado_tree.heading("ID", text="ID")
+        resultado_tree.heading("ID", text="ID Préstamo")
         resultado_tree.heading("Usuario", text="Usuario")
         resultado_tree.heading("Libro", text="Libro")
         resultado_tree.heading("Fecha Préstamo", text="Fecha Préstamo")

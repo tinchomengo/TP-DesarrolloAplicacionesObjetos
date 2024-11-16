@@ -10,7 +10,7 @@ class PrestamoController:
         # Obtener préstamos vencidos donde la fecha de devolución real es mayor a la estimada
         query = """
         SELECT 
-            prestamos.id, 
+            prestamos.id,
             usuarios.nombre || ' ' || usuarios.apellido AS usuario, 
             libros.titulo AS libro, 
             prestamos.fecha_devolucion_estimada, 
@@ -134,7 +134,7 @@ class PrestamoController:
 
         usuario_id, fecha_devolucion_estimada = prestamo[0]
 
-                # Get the related copy (ejemplar) ID
+        # Get the related copy (ejemplar) ID
         ejemplar_query = "SELECT ejemplar_id FROM prestamos WHERE id = ?"
         ejemplar_id = self.db.fetch_query(ejemplar_query, (prestamo_id,))[0][0]
 
